@@ -4,6 +4,7 @@
 import crypto from 'node:crypto';
 import { Buffer } from 'node:buffer';
 import { makeStore } from './store.mjs';
+import OWNER_HASH_FILE from './owner-hash.mjs';
 let ENV = {}; // Cloudflare bindings + secrets for this request
 const subtle = globalThis.crypto.subtle;
 const enc8 = (x) => typeof x === 'string' ? new TextEncoder().encode(x) : x;
@@ -12,7 +13,7 @@ const randInt = (n) => { const a = new Uint32Array(1); globalThis.crypto.getRand
 
 // ---------------------------------------------------------------- owner (same login as before)
 const OWNER = 'stevennn', OWNER_SALT = 'us2-owner-v1';
-const ownerHash = () => String(ENV.OWNER_HASH || '').trim().toLowerCase(); // set with "Set Owner Password.bat"
+const ownerHash = () => String(ENV.OWNER_HASH || OWNER_HASH_FILE || '').trim().toLowerCase(); // set with "Set Owner Password.bat"
 const PBKDF_IT = 10000;
 
 // ---------------------------------------------------------------- Cloudflare R2 (free video storage, free to watch)
@@ -158,6 +159,27 @@ const store = () => makeStore(ENV);
 const json = (d, status = 200, extra = {}) => new Response(JSON.stringify(d), { status, headers: { 'content-type': 'application/json', 'cache-control': 'no-store', ...extra } });
 const fail = (msg, status = 400, more = {}) => json({ error: msg, ...more }, status);
 const now = () => Date.now();
+// ---- Email check: real-looking address + the domain really receives mail (MX record) + not a throwaway inbox
+const THROWAWAY = new Set('mailinator.com guerrillamail.com guerrillamail.net sharklasers.com 10minutemail.com 10minutemail.net tempmail.com temp-mail.org tempmail.net yopmail.com yopmail.net trashmail.com getnada.com nada.email dispostable.com maildrop.cc mintemail.com throwawaymail.com fakeinbox.com mohmal.com emailondeck.com tempr.email discard.email spamgourmet.com mailnesia.com moakt.com tempinbox.com burnermail.io 33mail.com mail.tm mailpoof.com tmpmail.org tmpmail.net emailfake.com fakemail.net inboxkitten.com mytemp.email tempmailo.com minuteinbox.com spambox.us anonaddy.me'.split(' '));
+const normEmail = (e) => String(e || '').trim().toLowerCase().slice(0, 120);
+const mxCache = new Map();
+async function emailProblem(email) {
+  if (!/^[a-z0-9._%+-]{1,64}@([a-z0-9-]+\.)+[a-z]{2,}$/.test(email)) return 'Type a real email address.';
+  const domain = email.split('@')[1];
+  if (THROWAWAY.has(domain) || /temp|trash|throwaway|disposable|10min|guerrilla/.test(domain)) return "Throwaway emails aren't allowed. Use your real email.";
+  if (!mxCache.has(domain)) {
+    let ok = null;
+    try { const r = await fetch('https://cloudflare-dns.com/dns-query?name=' + encodeURIComponent(domain) + '&type=MX', { headers: { accept: 'application/dns-json' } }); const d = await r.json(); ok = d.Status === 0 && (d.Answer || []).some(a => a.type === 15 && !/^0 \.?$/.test(a.data)); } catch { ok = null; }
+    if (ok === null) return null; // DNS lookup itself failed: don't block people for our problem
+    mxCache.set(domain, ok);
+  }
+  return mxCache.get(domain) ? null : `"${domain}" can't receive email. Check for typos.`;
+}
+async function sendCode(email, code) {
+  const r = await fetch('https://api.brevo.com/v3/smtp/email', { method: 'POST', headers: { 'api-key': ENV.BREVO_API_KEY, 'content-type': 'application/json', accept: 'application/json' },
+    body: JSON.stringify({ sender: { email: ENV.MAIL_FROM, name: 'UnStevened Social' }, to: [{ email }], subject: `Your code: ${code}`, htmlContent: `<p>Your UnStevened Social code is</p><h1 style="letter-spacing:6px">${code}</h1><p>It works for 10 minutes. If you didn't ask for this, ignore this email.</p>` }) });
+  return r.ok;
+}
 // ---- Sign in with Google: checks Google's signed ID token (no passwords from Google ever reach us)
 let gKeys = null, gKeysAt = 0;
 async function verifyGoogle(tok, clientId, domain) {
@@ -501,7 +523,7 @@ async function handle(req, context) {
         timeout: isOwnerTok ? 0 : Math.max(devTO, meRec?.timeout || 0) > now() ? Math.max(devTO, meRec?.timeout || 0) : 0,
         me: me ? { ...pub(meRec), owner: isOwner(), perms: permsOf(meRec), status: statusOf(meRec), hideRoles: !!meRec.hideRoles, prefs: { ...DEF_PREFS, ...(meRec.prefs || {}) }, pushCount: (meRec.pushSubs || []).length } : null,
         limit: info && { used: info.used, max: info.max, left: info.left, bypass: info.bypass, nextAt: info.nextAt, windowMin: info.windowMin },
-        cfg: { googleId: ENV.GOOGLE_CLIENT_ID || '', googleDomain: cfg.googleDomain || '', codeOn: cfg.codeOn !== false, r2: true, gifs: cfg.gifs, gifMaxKB: cfg.gifMaxKB, shutdown: cfg.shutdown, shutdownMsg: cfg.shutdownMsg, maxVideoSec: cfg.maxVideoSec, maxVideoSecLong: cfg.maxVideoSecLong, maxVideoMB: clipCapMB(), groupMax: Math.min(5, cfg.groupMax), maintenance: cfg.maintenance, signups: cfg.signups, postsOpen: cfg.postsOpen, dmOpen: cfg.dmOpen, callsOpen: cfg.callsOpen, motd: cfg.motd },
+        cfg: { emailCode: !!(ENV.BREVO_API_KEY && ENV.MAIL_FROM), googleId: ENV.GOOGLE_CLIENT_ID || '', googleDomain: cfg.googleDomain || '', codeOn: cfg.codeOn !== false, r2: true, gifs: cfg.gifs, gifMaxKB: cfg.gifMaxKB, shutdown: cfg.shutdown, shutdownMsg: cfg.shutdownMsg, maxVideoSec: cfg.maxVideoSec, maxVideoSecLong: cfg.maxVideoSecLong, maxVideoMB: clipCapMB(), groupMax: Math.min(5, cfg.groupMax), maintenance: cfg.maintenance, signups: cfg.signups, postsOpen: cfg.postsOpen, dmOpen: cfg.dmOpen, callsOpen: cfg.callsOpen, motd: cfg.motd },
         announce: cfg.announce, saver: saverLevel(cfg), roles: Object.fromEntries(Object.entries(M.roles).map(([k, r]) => [k, { name: r.name, color: r.color, badge: r.badge, rank: r.rank }]))
       });
       if (url.searchParams.get('boot')) { out._extraReqs = 8; out._extraBytes = 60000; } // page + scripts (mostly browser-cached)
@@ -541,16 +563,41 @@ async function handle(req, context) {
     const passOk = isOwnerTok || cfg.codeOn === false || await (async () => { const [pb, ps] = passTok.split('.'); if (!pb || !ps) return false; const good = crypto.createHmac('sha256', await secret(s)).update(pb).digest('base64url'); if (good !== ps) return false; try { const p = JSON.parse(Buffer.from(pb, 'base64url').toString()); return p.pass === 1 && p.exp > now() && (!p.d || p.d === device) && (p.iat || 0) >= (cfg.codeEpoch || 0); } catch { return false; } })();
     if (!passOk && !(route === 'login' && method === 'POST')) return fail('Crack the code to get in.', 403, { needPass: true });
 
+    if (route === 'emailcode' && method === 'POST') {
+      const b = await req.json().catch(() => ({}));
+      const email = normEmail(b.email); const bad = await emailProblem(email); if (bad) return fail(bad);
+      if (!ENV.BREVO_API_KEY || !ENV.MAIL_FROM) return json({ ok: true, noCode: true });
+      const rk = `erate/${device || net}`, times = ((await s.get(rk, { type: 'json' })) || []).filter(t => t > now() - 3600000);
+      if (times.length >= 5) return fail('Too many codes. Wait an hour and try again.', 429);
+      const code = String(100000 + randInt(900000));
+      await s.setJSON(`ecode/${sha(email)}`, { h: sha(email + code), exp: now() + 600000, tries: 0 });
+      await s.setJSON(rk, [...times, now()]);
+      if (!(await sendCode(email, code))) return fail("Couldn't send the email. Try again in a minute.", 502);
+      return json({ ok: true });
+    }
+
     if ((route === 'signup' || route === 'login') && method === 'POST') {
       const b = await req.json().catch(() => ({}));
       const u = clean(b.username), pw = String(b.password || '');
       const ownerLogin = route === 'login' && u === OWNER && !!ownerHash() && await hashPass(pw, OWNER_SALT) === ownerHash();
       if (!/^[a-z0-9_.]{3,20}$/.test(u)) return fail('Username must be 3–20 letters, numbers, _ or .');
       if (pw.length < 4 || pw.length > 100) return fail('Password must be at least 4 characters.');
-      if (u === OWNER && !ownerLogin) return fail(ownerHash() ? (route === 'login' ? 'Wrong username or password.' : 'That username is reserved.') : 'The owner password is not set up yet — run "Set Owner Password.bat" and add OWNER_HASH in Cloudflare.');
+      if (u === OWNER && !ownerLogin) return fail(ownerHash() ? (route === 'login' ? 'Wrong username or password.' : 'That username is reserved.') : 'The owner password is not set up yet — run "Set Owner Password.bat", then upload server/owner-hash.mjs to GitHub.');
       if (cfg.shutdown && !ownerLogin) return fail(cfg.shutdownMsg || 'UnStevened Social is closed right now.', 503, { shutdown: true });
       const key = userKey(u, net);
       let rec = await s.get(key, { type: 'json' });
+      let email = null;
+      if (!ownerLogin && (route === 'signup' || (rec && !rec.email))) {
+        email = normEmail(b.email); const bad = await emailProblem(email); if (bad) return fail(bad, 400, { needEmail: true });
+        if (ENV.BREVO_API_KEY && ENV.MAIL_FROM) {
+          const ck = `ecode/${sha(email)}`, c = await s.get(ck, { type: 'json' });
+          if (!c || c.exp < now()) return fail('Get a code sent to your email first (or it expired).', 400, { needEmail: true });
+          if (c.tries >= 5) { await s.delete(ck); return fail('Too many wrong codes. Send a new one.', 400, { needEmail: true }); }
+          if (sha(email + String(b.code || '').trim()) !== c.h) { c.tries++; await s.setJSON(ck, c); return fail('Wrong code. Check your email.', 400, { needEmail: true }); }
+        }
+        const taken = await s.get(`email/${net}/${email}`);
+        if (taken && taken !== u) return fail(`That email already has an account here: @${taken}`, 409, { needEmail: true });
+      }
       const GID = ENV.GOOGLE_CLIENT_ID; let gUser = null;
       if (GID && !ownerLogin && (route === 'signup' || b.google || (rec && !rec.google))) {
         try { gUser = await verifyGoogle(b.google, GID, cfg.googleDomain || ''); } catch (e) { return fail(e.message, 403, { needGoogle: true }); }
@@ -563,7 +610,7 @@ async function handle(req, context) {
         const dev = device ? ((await s.get(`dev/${device}`, { type: 'json' })) || {}) : {};
         if ((dev.users || []).filter(x => x.startsWith(net + ':')).length >= 6) return fail('Too many accounts on this device.', 429);
         const salt = crypto.randomBytes(16).toString('hex');
-        rec = { u, salt, hash: await hashPass(pw, salt), created: now(), roles: [], postTimes: [], ...(gUser ? { google: gUser } : {}) };
+        rec = { u, salt, hash: await hashPass(pw, salt), created: now(), roles: [], postTimes: [], ...(email ? { email } : {}), ...(gUser ? { google: gUser } : {}) };
         await s.setJSON(key, rec);
         M.nets[net] = { ...(M.nets[net] || { first: now() }), last: now(), users: (M.nets[net]?.users || 0) + 1 };
         await putMeta(s, M);
@@ -573,6 +620,7 @@ async function handle(req, context) {
       } else if (!rec || rec.hash !== await hashPass(pw, rec.salt)) return fail('Wrong username or password (accounts only exist on the network they were made on).', 401);
       if (gUser && rec.google && rec.google.sub !== gUser.sub) return fail('This account is linked to a different Google account.', 403, { needGoogle: true });
       if (gUser) { rec.google = gUser; await s.set(`gid/${net}/${gUser.sub}`, u); }
+      if (email) { rec.email = email; await s.set(`email/${net}/${email}`, u); await s.delete(`ecode/${sha(email)}`); }
       if (until(rec.ban) && !rec.owner) return fail(rec.ban.until === 0 ? 'This account is banned.' : 'This account is suspended until ' + new Date(rec.ban.until).toLocaleString() + '.', 403, { banned: true });
       rec.lastSeen = now(); rec.devices = uniq([...(rec.devices || []), device].filter(Boolean)).slice(-10);
       await s.setJSON(key, rec);
@@ -1221,8 +1269,8 @@ async function handle(req, context) {
         for (const b of blobs) {
           const u = b.key.split('/').pop(); const rq = (url.searchParams.get('q') || '').trim().toLowerCase();
           const r = await s.get(b.key, { type: 'json' }); if (!r) continue;
-          if (rq && !u.includes(q || rq) && !(r.google && (r.google.email.includes(rq) || r.google.name.toLowerCase().includes(rq)))) continue;
-          out.push({ ...pub(r), created: r.created, lastSeen: r.lastSeen || 0, roleIds: r.roles || [], status: statusOf(r), devices: r.devices || [], timeout: (r.timeout || 0) > now() ? r.timeout : 0, posts24: recent(r.postTimes).length, extraPosts: r.extraPosts || 0, owner: r.owner && r.u === OWNER, google: r.google ? { email: r.google.email, name: r.google.name } : null });
+          if (rq && !u.includes(q || rq) && !(r.email || '').includes(rq) && !(r.google && (r.google.email.includes(rq) || r.google.name.toLowerCase().includes(rq)))) continue;
+          out.push({ ...pub(r), created: r.created, lastSeen: r.lastSeen || 0, roleIds: r.roles || [], status: statusOf(r), devices: r.devices || [], timeout: (r.timeout || 0) > now() ? r.timeout : 0, posts24: recent(r.postTimes).length, extraPosts: r.extraPosts || 0, owner: r.owner && r.u === OWNER, email: r.email || '', google: r.google ? { email: r.google.email, name: r.google.name } : null });
           if (out.length >= 150) break;
         }
         return json({ users: out });
