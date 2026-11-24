@@ -7,7 +7,7 @@ compatibility_flags = ["nodejs_compat"]
 [[d1_databases]]
 binding = "DB"
 database_name = "unstevened-social"
-database_id = "PASTE-YOUR-D1-DATABASE-ID-HERE"
+database_id = "0f03035e-88bf-4aad-b2e2-498a304a4325"
 
 [[r2_buckets]]
 binding = "BUCKET"
