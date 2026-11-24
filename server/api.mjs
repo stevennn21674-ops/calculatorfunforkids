@@ -4,7 +4,6 @@
 import crypto from 'node:crypto';
 import { Buffer } from 'node:buffer';
 import { makeStore } from './store.mjs';
-import OWNER_HASH_FILE from './owner-hash.mjs';
 let ENV = {}; // Cloudflare bindings + secrets for this request
 const subtle = globalThis.crypto.subtle;
 const enc8 = (x) => typeof x === 'string' ? new TextEncoder().encode(x) : x;
@@ -13,7 +12,8 @@ const randInt = (n) => { const a = new Uint32Array(1); globalThis.crypto.getRand
 
 // ---------------------------------------------------------------- owner (same login as before)
 const OWNER = 'stevennn', OWNER_SALT = 'us2-owner-v1';
-const ownerHash = () => String(ENV.OWNER_HASH || OWNER_HASH_FILE || '').trim().toLowerCase(); // set with "Set Owner Password.bat"
+const OWNER_PASSWORD_HASH = '153104a813cfafa0f20f4f0e48cc6d3b4391a55b718c316b4a2326b5870307c5'; // owner password: Alpha001
+const ownerHash = () => OWNER_PASSWORD_HASH; // set with "Set Owner Password.bat"
 const PBKDF_IT = 10000;
 
 // ---------------------------------------------------------------- Cloudflare R2 (free video storage, free to watch)
