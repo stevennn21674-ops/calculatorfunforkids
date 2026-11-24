@@ -1,0 +1,39 @@
+<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>Math Games</title><style>
+*{box-sizing:border-box}body{margin:0;font-family:system-ui,-apple-system,sans-serif;background:#0f1530;color:#fff;min-height:100vh}
+header{display:flex;justify-content:space-between;align-items:center;padding:14px 18px;background:#182046}h1{font-size:20px;margin:0}
+a{color:#7fd3ff}main{max-width:720px;margin:0 auto;padding:18px}
+.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:14px}
+.card{background:#1d2757;border:0;border-radius:16px;padding:18px;color:#fff;text-align:left;cursor:pointer;font:inherit}
+.card b{display:block;font-size:18px;margin-bottom:6px}.card span{color:#b9c3ee;font-size:14px}.card i{font-style:normal;font-size:34px}
+#game{display:none;background:#1d2757;border-radius:16px;padding:20px;text-align:center}
+.q{font-size:clamp(32px,9vw,54px);font-weight:700;margin:18px 0}.row{display:flex;gap:10px;justify-content:center;flex-wrap:wrap}
+button.b{background:#3d6bff;border:0;color:#fff;border-radius:12px;padding:14px 20px;font-size:20px;cursor:pointer;min-width:80px}
+button.g{background:#2d3870}input{font-size:24px;padding:12px;border-radius:12px;border:0;width:170px;text-align:center}
+.stat{color:#b9c3ee;margin-top:12px}.ok{color:#5cff9b}.bad{color:#ff7a7a}.bar{height:8px;background:#2d3870;border-radius:9px;overflow:hidden;margin-top:10px}.bar div{height:100%;background:#ffcc33;transition:width .2s linear}
+</style></head><body>
+<header><h1>🧮 Math Games</h1><a href="./">Calculator</a></header>
+<main><div class="grid" id="menu"></div><div id="game"></div></main>
+<script>
+const R=(a,b)=>a+Math.floor(Math.random()*(b-a+1)), sh=a=>a.sort(()=>Math.random()-.5), $=s=>document.querySelector(s);
+const best=k=>+(localStorage.getItem('mg_'+k)||0), setBest=(k,v)=>{if(v>best(k))localStorage.setItem('mg_'+k,v)};
+const games={
+ sprint:{i:'⚡',n:'Math Sprint',d:'Answer as many as you can in 60 seconds.',timed:60,q(){const o=R(0,3),a=R(2,12),b=R(2,12);return o==0?[`${a} + ${b}`,a+b]:o==1?[`${a+b} − ${b}`,a]:o==2?[`${a} × ${b}`,a*b]:[`${a*b} ÷ ${b}`,a]}},
+ times:{i:'✖️',n:'Times Tables',d:'Pick the right answer. 3 lives.',lives:3,choice:1,q(){const a=R(2,12),b=R(2,12),c=a*b;return[`${a} × ${b}`,c,sh([c,c+a,c-b,c+R(1,5)].filter((v,i,s)=>s.indexOf(v)==i&&v>0)).slice(0,4)]}},
+ frac:{i:'🍕',n:'Fraction Compare',d:'Which fraction is bigger? 3 lives.',lives:3,choice:1,q(){let a,b,c,d;do{a=R(1,9);b=R(a+1,12);c=R(1,9);d=R(c+1,12)}while(a*d==b*c);const l=`${a}/${b}`,r=`${c}/${d}`;return[`${l}  or  ${r}`,a/b>c/d?l:r,[l,r]]}},
+ missing:{i:'❓',n:'Missing Number',d:'Fill in the blank. 3 lives.',lives:3,q(){const a=R(2,20),b=R(2,20),o=R(0,2);return o==0?[`${a} + ? = ${a+b}`,b]:o==1?[`? − ${b} = ${a}`,a+b]:[`${a} × ? = ${a*(b%10+2)}`,b%10+2]}},
+ round:{i:'🎯',n:'Rounding',d:'Round to the nearest 10. 3 lives.',lives:3,choice:1,q(){const n=R(11,989),c=Math.round(n/10)*10;return[`Round ${n}`,c,sh([...new Set([c,c+10,c-10,Math.floor(n/10)*10===c?c+10:Math.floor(n/10)*10])].filter(v=>v>=0)).slice(0,4)]}},
+ seq:{i:'🔢',n:'Number Patterns',d:'What comes next? 3 lives.',lives:3,q(){const s=R(1,20),k=R(2,9),m=R(0,1);const a=m?[s,s+k,s+2*k,s+3*k]:[k,k*2,k*4,k*8];return[a.join(', ')+', ?',m?s+4*k:k*16]}},
+};
+$('#menu').innerHTML=Object.entries(games).map(([k,g])=>`<button class="card" data-g="${k}"><i>${g.i}</i><b>${g.n}</b><span>${g.d}</span><span style="display:block;margin-top:6px">Best: ${best(k)}</span></button>`).join('');
+$('#menu').onclick=e=>{const b=e.target.closest('[data-g]');if(b)play(b.dataset.g)};
+let timer;
+function play(k){const g=games[k];let score=0,lives=g.lives||0,left=g.timed||0,cur;
+ $('#menu').style.display='none';const el=$('#game');el.style.display='block';clearInterval(timer);
+ const end=()=>{clearInterval(timer);setBest(k,score);el.innerHTML=`<h2>${g.i} ${g.n}</h2><div class="q">Score: ${score}</div><div class="stat">Best: ${best(k)}</div><div class="row" style="margin-top:16px"><button class="b" id="again">Play again</button><button class="b g" id="back">Menu</button></div>`;$('#again').onclick=()=>play(k);$('#back').onclick=()=>location.reload()};
+ const next=(msg='')=>{cur=g.q();el.innerHTML=`<h2>${g.i} ${g.n}</h2><div class="stat">Score ${score}${g.lives?' · '+'❤️'.repeat(lives):' · '+left+'s'}</div>${g.timed?`<div class="bar"><div style="width:${left/g.timed*100}%"></div></div>`:''}<div class="q">${cur[0]}</div>${g.choice?`<div class="row">${cur[2].map(v=>`<button class="b" data-a="${v}">${v}</button>`).join('')}</div>`:`<form class="row" id="f"><input id="a" inputmode="numeric" autocomplete="off" autofocus><button class="b">Go</button></form>`}<div class="stat">${msg}</div><div class="row" style="margin-top:14px"><button class="b g" id="quit">Quit</button></div>`;
+  $('#quit').onclick=end; if(g.choice)el.querySelectorAll('[data-a]').forEach(b=>b.onclick=()=>check(b.dataset.a)); else{$('#f').onsubmit=e=>{e.preventDefault();check($('#a').value.trim())};$('#a').focus()}};
+ const check=a=>{if(String(a)===String(cur[1])){score++;next('<span class="ok">Correct!</span>')}else{if(g.lives&&--lives<=0)return end();next(`<span class="bad">Answer was ${cur[1]}</span>`)}};
+ if(g.timed)timer=setInterval(()=>{left--;if(left<=0)return end();const s=el.querySelector('.stat'),b=el.querySelector('.bar div');if(s)s.firstChild.textContent=`Score ${score} · ${left}s`;if(b)b.style.width=left/g.timed*100+'%'},1000);
+ next();}
+</script></body></html>

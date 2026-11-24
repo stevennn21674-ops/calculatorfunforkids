@@ -1,0 +1,14 @@
+# UnStevened Social on Cloudflare Pages (free). Only ONE thing to fill in: the database_id below.
+name = "calculatorfunforkids"
+pages_build_output_dir = "public"
+compatibility_date = "2026-11-01"
+compatibility_flags = ["nodejs_compat"]
+
+[[d1_databases]]
+binding = "DB"
+database_name = "unstevened-social"
+database_id = "PASTE-YOUR-D1-DATABASE-ID-HERE"
+
+[[r2_buckets]]
+binding = "BUCKET"
+bucket_name = "unstevened-clips"

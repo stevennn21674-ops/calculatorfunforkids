@@ -1,0 +1,131 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, interactive-widget=resizes-content">
+<title>UnStevened Social</title>
+<meta name="theme-color" content="#0b0b12">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" href="icons/logo.svg" type="image/svg+xml">
+<link rel="apple-touch-icon" href="icons/app-192.png">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<link rel="stylesheet" href="style.css?v=1795468680">
+<script src="calc.js"></script>
+</head>
+<body>
+<div id="app">
+  <!-- top bar -->
+  <header class="top">
+    <div class="brand"><span id="brandLogo"></span><b>UnStevened</b><i>Social</i></div>
+    <div class="top-right">
+      <span class="net-chip" id="netChip" hidden></span>
+      <button class="icon-btn" id="adminBtn" hidden title="Admin panel"></button>
+    </div>
+  </header>
+  <div class="announce" id="announce" hidden></div>
+
+  <!-- screens -->
+  <main id="screens">
+    <section class="screen" id="scr-clips">
+      <div class="feed-tabs"><button class="on" data-feed="all">For you</button><button data-feed="following">Following</button><button data-feed="mine">My clips</button></div>
+      <div class="feed" id="feed"></div>
+    </section>
+
+    <section class="screen" id="scr-post" hidden>
+      <div class="post-wrap">
+        <div class="seg" id="postSeg"><button class="on" data-pk="clip">Clip</button><button data-pk="post">Post</button></div>
+        <div id="postBox" hidden>
+          <textarea id="ptText" rows="4" maxlength="1000" placeholder="What's up?"></textarea>
+          <div class="pt-img" id="ptImgWrap" hidden><img id="ptImg" alt=""><button class="icon-btn" id="ptImgX"></button></div>
+          <div class="pt-poll" id="ptPoll" hidden>
+            <input id="ptQ" maxlength="140" placeholder="Ask a question (optional)">
+            <div id="ptOpts"></div>
+            <div class="row"><button class="btn ghost sm" id="ptAddOpt">+ Option</button><label class="sw-row" style="flex:1;justify-content:flex-end;gap:8px"><span>Allow multiple answers</span><input type="checkbox" id="ptMulti"></label></div>
+          </div>
+          <div class="row"><label class="btn ghost sm" id="ptPic"><input type="file" accept="image/*" id="ptPicIn" hidden>Picture</label><button class="btn ghost sm" id="ptPollBtn">Poll</button><span style="flex:1"></span><button class="btn" id="ptGo">Post</button></div>
+          <p class="fine" id="ptRule"></p>
+        </div>
+        <div id="clipBox">
+        <h2>Post a clip</h2>
+        <div class="limit-card" id="limitCard">
+          <div class="limit-ring"><svg viewBox="0 0 120 120"><circle cx="60" cy="60" r="52" class="track"/><circle cx="60" cy="60" r="52" class="bar" id="limitBar"/></svg><div class="limit-num" id="limitNum">–</div></div>
+          <div class="limit-text"><b id="limitTitle">Checking…</b><span id="limitSub"></span></div>
+        </div>
+        <div class="rec-row" id="recRow">
+          <button class="btn ghost" id="recScreen"><span data-ic="clips"></span>Record screen</button>
+          <button class="btn ghost" id="recCam"><span data-ic="video"></span>Record camera</button>
+        </div>
+        <label class="drop" id="drop">
+          <input type="file" accept="video/*" id="fileIn" hidden>
+          <span class="drop-ic"></span>
+          <b>Pick a video</b><small>or drop it here · it gets shrunk before upload</small>
+        </label>
+        <div class="pending" id="pending" hidden>
+          <video id="pendVid" playsinline controls></video>
+          <input id="pendTitle" maxlength="120" placeholder="Title (optional)">
+          <input id="pendGame" maxlength="60" placeholder="Game (optional)">
+          <div class="row"><button class="btn ghost" id="pendEdit">Edit</button><button class="btn ghost" id="pendDraft">Save draft</button><button class="btn ghost" id="pendDrop">Discard</button><button class="btn" id="pendPost" style="flex:1">Post</button></div>
+          <div class="progress" id="prog" hidden><div></div><span></span></div>
+        </div>
+        <div class="drafts" id="drafts" hidden><h3>Drafts <small>saved on this device</small></h3><div id="draftList"></div></div>
+        </div>
+        <p class="fine" id="clipRule">You can post <b id="ruleMax">3</b> clips every <b id="ruleWin">2 h 50 min</b>. The limit sticks to this device — new accounts don't reset it, and deleting a clip doesn't give it back.</p>
+      </div>
+    </section>
+
+    <section class="screen" id="scr-chats" hidden>
+      <div class="chat-list" id="chatList">
+        <div class="list-head">
+          <h2>Chats</h2>
+          <div class="row"><button class="icon-btn" id="newGroupBtn" title="New group"></button><button class="icon-btn" id="addFriendBtn" title="Add friends"></button></div>
+        </div>
+        <div class="req-bar" id="reqBar" hidden></div>
+        <div id="threads"></div>
+      </div>
+      <div class="chat" id="chat" hidden>
+        <div class="chat-head">
+          <button class="icon-btn" id="chatBack"></button>
+          <div class="chat-who" id="chatWho"></div>
+          <button class="icon-btn" id="chatCall" title="Voice call"></button>
+          <button class="icon-btn" id="chatVideo" title="Video call"></button>
+          <button class="icon-btn" id="chatMore" title="More"></button>
+        </div>
+        <div class="msgs" id="msgs"></div>
+        <form class="compose" id="compose">
+          <label class="icon-btn" id="imgBtn"><input type="file" accept="image/*" id="imgIn" hidden></label>
+          <input id="msgIn" autocomplete="off" maxlength="2000" placeholder="Message" enterkeyhint="send">
+          <button class="icon-btn send" id="sendBtn"></button>
+        </form>
+      </div>
+    </section>
+
+
+    <section class="screen" id="scr-me" hidden>
+      <div class="me-wrap" id="meWrap"></div>
+    </section>
+  </main>
+
+  <nav class="tabs">
+    <button data-tab="clips" class="on"><span data-ic="clips"></span>Clips</button>
+    <button data-tab="post"><span data-ic="plus"></span>Post</button>
+    <button data-tab="chats"><span data-ic="chat"></span>Chats<i class="dot" id="chatDot" hidden></i></button>
+    <button data-tab="me"><span data-ic="user"></span>Me</button>
+  </nav>
+</div>
+
+<!-- full-screen states -->
+<div class="gate" id="gate" hidden></div>
+<div class="modal" id="modal" hidden><div class="sheet" id="sheet"></div></div>
+<div class="toast" id="toast" hidden></div>
+<div class="ring" id="ring" hidden></div>
+<div class="call" id="call" hidden></div>
+
+<script src="social-config.js?v=1795468680"></script>
+<script src="icons.js?v=1795468680"></script>
+<script src="core.js?v=1795468680"></script>
+<script src="clip-editor.js?v=1795468680"></script>
+<script src="call.js?v=1795468680"></script>
+<script src="app.js?v=1795468680"></script>
+</body>
+</html>

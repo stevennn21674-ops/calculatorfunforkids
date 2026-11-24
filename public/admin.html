@@ -1,0 +1,50 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Owner Panel · UnStevened Social</title>
+<meta name="theme-color" content="#0b0b12">
+<link rel="icon" href="icons/logo.svg" type="image/svg+xml">
+<link rel="stylesheet" href="style.css?v=1795468680">
+<style>
+body{overflow:auto}
+.adm{display:flex;min-height:100dvh}
+.side{width:230px;flex:none;border-right:1px solid var(--line);padding:14px 10px;display:flex;flex-direction:column;gap:2px;position:sticky;top:0;height:100dvh;overflow:auto;background:var(--bg)}
+.side .brand{padding:4px 8px 14px}
+.side button{display:flex;align-items:center;gap:10px;padding:10px 12px;border-radius:12px;color:var(--mut);text-align:left;font-weight:600}
+.side button.on{background:var(--bg3);color:var(--tx)}.side button:hover{color:var(--tx)}
+.side .sep{font-size:11px;color:var(--mut);padding:12px 12px 4px;text-transform:uppercase;letter-spacing:.08em}
+.body{flex:1;min-width:0;padding:20px;display:flex;flex-direction:column;gap:14px}
+.body h2{margin:0;display:flex;align-items:center;gap:10px}
+.grid4{display:grid;grid-template-columns:repeat(auto-fill,minmax(160px,1fr));gap:10px}
+.kpi{background:var(--bg2);border:1px solid var(--line);border-radius:16px;padding:14px}.kpi b{display:block;font-size:26px}.kpi span{color:var(--mut);font-size:13px}
+table{width:100%;border-collapse:collapse;font-size:14px}th{text-align:left;color:var(--mut);font-weight:600;font-size:12px;padding:8px}td{padding:8px;border-top:1px solid var(--line);vertical-align:middle}
+.tw{background:var(--bg2);border:1px solid var(--line);border-radius:16px;overflow:auto}
+.tag{font-size:11px;padding:2px 7px;border-radius:99px;background:var(--bg3);margin-right:4px;white-space:nowrap}
+.tag.bad{background:#ff4d5e33;color:#ff8a95}.tag.ok{background:#22c55e33;color:#7ee2a2}.tag.warn{background:#ffb03b33;color:#ffd38a}
+.perms{display:grid;grid-template-columns:repeat(auto-fill,minmax(230px,1fr));gap:4px}
+.perms label{display:flex;gap:8px;align-items:center;font-size:13px;padding:5px;border-radius:8px}.perms label:hover{background:var(--bg3)}
+.perms input,.sw input{width:18px;height:18px;accent-color:var(--b)}
+.sw{display:flex;align-items:center;gap:10px;justify-content:space-between;padding:6px 0}
+.f2{display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:12px}.f2 label{display:flex;flex-direction:column;gap:5px;font-size:13px;color:var(--mut)}
+.meter{height:16px;border-radius:99px;background:var(--bg3);overflow:hidden;position:relative}.meter div{height:100%;background:var(--grad)}.meter i{position:absolute;top:0;bottom:0;width:2px;background:#fff}
+.lvl{display:flex;gap:6px}.lvl button{flex:1;padding:10px;border-radius:10px;background:var(--bg3);font-weight:700;font-size:13px}.lvl button.on{background:var(--grad)}
+.thumb{width:44px;height:64px;object-fit:cover;border-radius:8px;background:#000}
+@media(max-width:800px){.adm{flex-direction:column}.side{width:auto;height:auto;position:static;flex-direction:row;overflow-x:auto;border-right:0;border-bottom:1px solid var(--line)}.side .brand,.side .sep{display:none}.side button{white-space:nowrap}.body{padding:12px}}
+</style>
+</head>
+<body>
+<div class="gate" id="gate"><div class="gate-box"><p>Loading…</p></div></div>
+<div class="adm" id="adm" hidden>
+  <nav class="side" id="side"></nav>
+  <div class="body" id="body"></div>
+</div>
+<div class="modal" id="modal" hidden><div class="sheet" id="sheet"></div></div>
+<div class="toast" id="toast" hidden></div>
+<script>window.USS_NO_SYNC = true;</script>
+<script src="icons.js?v=1795468680"></script>
+<script src="core.js?v=1795468680"></script>
+<script src="admin.js?v=1795468680"></script>
+</body>
+</html>
